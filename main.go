@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"gopkg.in/ini.v1"
@@ -85,15 +86,16 @@ func main() {
 		w := bufio.NewWriter(f)
 		defer w.Flush()
 
-		logRow := "URL;REQ;RES;CODE;TIME;STACK\r\n"
-		fmt.Println(logRow)
+		logRow := "URL;CODE;TIME;STACK;REQ;RES;ERR\r\n"
 		_, err = w.WriteString(logRow)
 
 		for {
 			row, more := <-chStat
 			if more {
-				logRow := row.URL + ";" + row.Req + ";" + row.Res + ";" + strconv.Itoa(row.Code) + ";" + strconv.Itoa(int(row.Time)) + ";" + strconv.Itoa(int(row.Stack)) + "\r\n"
-				fmt.Println(logRow)
+				req, _ := json.Marshal(row.Req)
+				res, _ := json.Marshal(row.Res)
+				logRow := row.URL + ";" + strconv.Itoa(row.Code) + ";" + strconv.Itoa(int(row.Time)) + ";" + strconv.Itoa(int(row.Stack)) + ";" + string(req) + ";" + string(res)+ ";" + row.Err + "\r\n"
+				fmt.Println(row.URL, row.Code, row.Time)
 				_, err = w.WriteString(logRow)
 				modules.CheckErr(err)
 			} else {
@@ -129,6 +131,7 @@ func runTask(ii int, url string, cfg *ini.File, varPath string, wg *sync.WaitGro
 	if err != nil {
 		panic(err)
 	}
+	params["successPhrase"] = cfg.Section("main").Key("soap").String()
 
 	// Start channels
 	wg1 := sync.WaitGroup{}
@@ -177,20 +180,27 @@ func runThread(i string, url string, chTask chan string, wg1 *sync.WaitGroup, pa
 
 			resp, err := soapCall(url, req)
 			modules.CheckErr(err)
-			//body, err := ioutil.ReadAll(resp.Body)
+			body, err := ioutil.ReadAll(resp.Body)
 
 			d := time.Now().Sub(t)
 
 			var stat Stat
-			//stat.Req = strings.ReplaceAll(req, "\r\n", "")
-			//stat.Res = strings.ReplaceAll(string(body), "\n", "")
+			stat.Req = req
+			stat.Res = string(body)
 			stat.Stack = len(chTask)
 			stat.Time = d.Nanoseconds() / 1000000
 			stat.Code = resp.StatusCode
 			stat.URL = url
-			stat.URL = url
 			if err != nil {
 				stat.Err = err.Error()
+			}
+			if stat.Err == "" {
+				if resp.StatusCode != 200 || !strings.Contains(string(body), params["successPhrase"].(string)) {
+					stat.Err = "Error response"
+				}
+			}
+			if stat.Err == "" {
+				stat.Err = "-"
 			}
 
 			chStat <- stat
