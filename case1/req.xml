@@ -1,0 +1,16 @@
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ist="http://ws.moskvorechie.ru:80/IST">
+    <soap:Header/>
+    <soap:Body>
+        <ist:PM_6951_FOR_PORTAL_EX>
+            <ist:IncomingSettings>
+                <ist:KONTRAGENT_>?</ist:KONTRAGENT_>
+                <ist:BEGIN_DATE_>?</ist:BEGIN_DATE_>
+                <ist:END_DATE_>?</ist:END_DATE_>
+                <ist:DSTATE_></ist:DSTATE_>
+                <ist:FILIALS></ist:FILIALS>
+                <ist:ARTICUL></ist:ARTICUL>
+                <ist:NOMER_DOC></ist:NOMER_DOC>
+            </ist:IncomingSettings>
+        </ist:PM_6951_FOR_PORTAL_EX>
+    </soap:Body>
+</soap:Envelope>
